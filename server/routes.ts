@@ -152,15 +152,19 @@ export async function registerRoutes(
     if (!run) return res.status(404).json({ message: "Run not found" });
     
     const items = await storage.getPayrollItems(run.id);
-    // Enrich items with employee data if possible, or frontend fetches employees separately?
-    // Let's assume frontend joins by employeeId. 
-    // Wait, getPayrollItems returns PayrollItem[]. 
-    // We should probably return items with employee details.
-    // Ideally we update storage to return joined data, or do it here. 
-    // For MVP, lets handle it in frontend or do a quick map here if needed.
-    // Actually, frontend can fetch employee list and map id -> name.
     
-    res.json({ ...run, items });
+    // Enrich items with employee data
+    const itemsWithEmployees = await Promise.all(
+      items.map(async (item) => {
+        const employee = await storage.getEmployee(item.employeeId);
+        return { ...item, employee };
+      })
+    );
+    
+    // Also get company info for navigation
+    const company = await storage.getCompany(run.companyId);
+    
+    res.json({ ...run, items: itemsWithEmployees, company });
   });
 
   app.patch(api.payroll.updateItem.path, requireAuth, async (req, res) => {
