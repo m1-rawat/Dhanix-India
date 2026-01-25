@@ -1,0 +1,131 @@
+Build a full‑stack SaaS web app called Dhanix for Indian payroll with PF/ESI support.
+
+Tech stack:
+
+Next.js 14 with App Router
+TypeScript
+Tailwind CSS
+Prisma ORM
+PostgreSQL with Supabase as the database
+Simple email/password authentication (can be with NextAuth or a custom auth, your choice)
+
+Core concepts:
+
+Multi‑tenant:
+
+User (login account)
+Organization (typically a PF/ESI consultancy or a company that owns multiple client companies)
+OrganizationMember (user’s role inside an organization: OWNER, ADMIN, STAFF)
+Company (actual client company for which payroll is processed, belongs to an Organization)
+
+Data models (first version):
+
+User
+
+id, name, email (unique), password hash, createdAt, updatedAt
+Organization
+
+id, name, createdAt, updatedAt
+OrganizationMember
+
+id, userId, organizationId, role (OWNER | ADMIN | STAFF)
+unique(userId, organizationId)
+Company
+
+id, organizationId, name, code (unique, optional), createdAt, updatedAt
+Employee
+
+id, companyId
+employeeCode
+firstName, lastName
+email, phone, dateOfJoining
+pfNumber (UAN or PF No), esiNumber
+isPfApplicable, isEsiApplicable
+basicSalary (monthly), otherAllowances (for now just one numeric field)
+createdAt, updatedAt
+PayrollRun
+
+id, companyId
+month (e.g. 2024‑01), status (DRAFT | LOCKED)
+createdAt, updatedAt
+PayrollItem
+
+id, payrollRunId, employeeId
+daysWorked, lopDays
+grossSalary, netSalary
+pfEmployee, pfEmployer
+esiEmployee, esiEmployer
+otherDeductions
+Payslip
+
+id, payrollItemId
+jsonData (to store a snapshot of all components for that employee for that run)
+createdAt
+
+Business rules (simplified for v1):
+
+Salary calculation:
+
+Effective salary for the month = (Basic + OtherAllowances) * (daysWorked / totalDaysInMonth).
+PF:
+
+If isPfApplicable = true, calculate PF employee and employer as 12% of Basic (pro‑rated by daysWorked).
+For now, ignore complex PF caps; just keep this as a simple percentage param.
+ESI:
+
+If isEsiApplicable = true, calculate:
+
+Employee 0.75% of gross, employer 3.25% of gross (values configurable later).
+Net salary = grossSalary − (pfEmployee + esiEmployee + otherDeductions).
+
+Features in MVP:
+
+Authentication:
+
+Email/password signup + login
+After login, user can create an Organization.
+Organization & Company management:
+
+List organizations for the logged‑in user.
+Switch into a selected organization.
+Within an organization: CRUD for Companies.
+Employee management:
+
+Within a company:
+
+List employees (table with search on name/code).
+Create/edit employee with fields listed above.
+Payroll run:
+
+Select a company and a month.
+System lists all active employees of that company.
+For each employee, allow editing of daysWorked, lopDays, and otherDeductions.
+On saving, compute salary, PF, ESI, net salary and create PayrollItem records.
+Ability to lock the payroll run (status = LOCKED) so it becomes read‑only.
+Payslips:
+
+For each PayrollItem, create a Payslip entry with JSON snapshot.
+A payslip page for an employee: shows basic data, month, salary components, PF/ESI, net.
+Simple HTML/React UI is enough in v1 (no fancy PDF needed yet).
+Basic navigation/UI:
+
+Clean dashboard layout with:
+
+Organization switcher
+Company list
+Links for Employees, Payroll Runs, Reports
+Tables with pagination when needed.
+
+Goals:
+
+Generate a working full‑stack app that I can deploy.
+Use Prisma migrations to manage the DB schema.
+Write clean, modular code that I can later extend with more complex PF/ESI rules.
+
+Start by scaffolding the project, setting up the DB models with Prisma, authentication, and basic pages for:
+
+Organization list + create
+Company list + create/edit within an org
+Employee list + create/edit within a company
+Payroll run create + list + detail page with items
+Payslip view page per employee per run.
