@@ -23,7 +23,7 @@ export default function AuthPage() {
 
   const registerForm = useForm<z.infer<typeof api.auth.register.input>>({
     resolver: zodResolver(api.auth.register.input),
-    defaultValues: { name: "", email: "", password: "", username: "" },
+    defaultValues: { name: "", email: "", password: "" },
   });
 
   return (
@@ -71,9 +71,9 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your username" {...field} />
+                              <Input type="email" placeholder="john@example.com" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -118,19 +118,6 @@ export default function AuthPage() {
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
                               <Input placeholder="John Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input placeholder="johndoe" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
