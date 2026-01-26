@@ -49,19 +49,26 @@ export const employees = pgTable("employees", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   employeeCode: text("employee_code").notNull(),
+  designation: text("designation"),
   email: text("email"),
   phone: text("phone"),
   dateOfJoining: timestamp("date_of_joining"),
+  isActive: boolean("is_active").default(true),
+  
+  // Bank Details
+  bankAccountNumber: text("bank_account_number"),
+  ifscCode: text("ifsc_code"),
   
   // Statutory Info
-  pfNumber: text("pf_number"),
-  esiNumber: text("esi_number"),
+  uan: text("uan"),
+  esicIpNumber: text("esic_ip_number"),
   isPfApplicable: boolean("is_pf_applicable").default(false),
   isEsiApplicable: boolean("is_esi_applicable").default(false),
   
-  // Salary Structure (Stored as strings to handle precise decimals in UI, parsed in backend)
-  basicSalary: numeric("basic_salary").notNull().default("0"),
-  otherAllowances: numeric("other_allowances").notNull().default("0"),
+  // Salary Structure (Monthly Fixed Components)
+  fixedBasicSalary: numeric("fixed_basic_salary").notNull().default("0"),
+  fixedHra: numeric("fixed_hra").notNull().default("0"),
+  fixedSpecialAllowance: numeric("fixed_special_allowance").notNull().default("0"),
   
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -85,6 +92,11 @@ export const payrollItems = pgTable("payroll_items", {
   daysWorked: numeric("days_worked").notNull().default("0"),
   totalDays: numeric("total_days").notNull().default("30"), // Days in month
   lopDays: numeric("lop_days").notNull().default("0"),
+  
+  // Salary Snapshot (from employee at time of run creation)
+  basicSalary: numeric("basic_salary").notNull().default("0"),
+  hra: numeric("hra").notNull().default("0"),
+  specialAllowance: numeric("special_allowance").notNull().default("0"),
   
   // Calculated Financials
   grossSalary: numeric("gross_salary").notNull().default("0"),
