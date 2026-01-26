@@ -123,17 +123,23 @@ export async function registerRoutes(
     const employees = await storage.getEmployees(Number(req.params.companyId));
     
     for (const emp of employees) {
-      // Default to 30 days or calculate based on month? 
-      // MVP: Default to 30 days total, 0 worked (user must enter) or default to 30 worked?
-      // Let's default to full attendance
+      // Only include active employees
+      if (emp.isActive === false) continue;
+      
+      // Snapshot salary components from employee
+      const basicSalary = emp.fixedBasicSalary || "0";
+      const hra = emp.fixedHra || "0";
+      const specialAllowance = emp.fixedSpecialAllowance || "0";
+      
       await storage.createPayrollItem({
         payrollRunId: run.id,
         employeeId: emp.id,
         daysWorked: "30",
         totalDays: "30",
         lopDays: "0",
-        basicSalary: emp.basicSalary, // Snapshot current salary
-        // Init with 0 calculations
+        basicSalary,
+        hra,
+        specialAllowance,
         grossSalary: "0",
         netSalary: "0",
         pfEmployee: "0",
@@ -209,20 +215,20 @@ async function calculatePayrollItem(itemId: number) {
   const totalDays = parseFloat(item.totalDays as string) || 30;
   const lopDays = parseFloat(item.lopDays as string) || 0;
   
-  const basic = parseFloat(employee.basicSalary as string) || 0;
-  const allowances = parseFloat(employee.otherAllowances as string) || 0;
+  // Use snapshotted salary components from payroll item (or fall back to employee)
+  const basic = parseFloat(item.basicSalary as string) || parseFloat(employee.fixedBasicSalary as string) || 0;
+  const hra = parseFloat(item.hra as string) || parseFloat(employee.fixedHra as string) || 0;
+  const specialAllowance = parseFloat(item.specialAllowance as string) || parseFloat(employee.fixedSpecialAllowance as string) || 0;
   
   // Pro-rating factor
-  const effectiveDays = Math.max(0, daysWorked - lopDays); // Simple logic: Days Worked is what matters. 
-  // Usually LOP is derived from Total - Worked. Let's assume Days Worked is the input source of truth.
-  
   const payoutRatio = totalDays > 0 ? daysWorked / totalDays : 0;
   
   const earnedBasic = basic * payoutRatio;
-  const earnedAllowances = allowances * payoutRatio;
-  const gross = earnedBasic + earnedAllowances;
+  const earnedHra = hra * payoutRatio;
+  const earnedSpecialAllowance = specialAllowance * payoutRatio;
+  const gross = earnedBasic + earnedHra + earnedSpecialAllowance;
   
-  // PF (12% of Basic, capped at 15k usually, but ignoring caps for MVP as per prompt)
+  // PF (12% of Basic, capped at 15k usually, but ignoring caps for MVP)
   let pfEmployee = 0;
   let pfEmployer = 0;
   if (employee.isPfApplicable) {
