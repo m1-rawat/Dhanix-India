@@ -96,7 +96,7 @@ export default function EmployeesPage() {
       fixedBasicSalary: String(data.fixedBasicSalary),
       fixedHra: String(data.fixedHra),
       fixedSpecialAllowance: String(data.fixedSpecialAllowance),
-      dateOfJoining: data.dateOfJoining ? new Date(data.dateOfJoining).toISOString() : undefined,
+      dateOfJoining: data.dateOfJoining ? new Date(data.dateOfJoining) : undefined,
     };
     
     createEmployee({ companyId, ...payload }, {

@@ -175,7 +175,13 @@ export async function registerRoutes(
 
   app.patch(api.payroll.updateItem.path, requireAuth, async (req, res) => {
     const input = api.payroll.updateItem.input.parse(req.body);
-    const item = await storage.updatePayrollItem(Number(req.params.id), input);
+    // Convert numeric inputs to strings for storage
+    const updateData: Record<string, string> = {};
+    if (input.daysWorked !== undefined) updateData.daysWorked = String(input.daysWorked);
+    if (input.lopDays !== undefined) updateData.lopDays = String(input.lopDays);
+    if (input.otherDeductions !== undefined) updateData.otherDeductions = String(input.otherDeductions);
+    
+    const item = await storage.updatePayrollItem(Number(req.params.id), updateData);
     
     // Auto-recalculate? Or wait for "Calculate" button?
     // Let's auto-calculate single item here for better UX
