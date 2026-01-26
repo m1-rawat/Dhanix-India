@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // === ENUMS ===
 export const userRoleEnum = ["OWNER", "ADMIN", "STAFF"] as const;
-export const payrollStatusEnum = ["DRAFT", "LOCKED"] as const;
+export const payrollStatusEnum = ["DRAFT", "PROCESSING", "COMPLETED", "LOCKED"] as const;
 
 // === USERS ===
 export const users = pgTable("users", {

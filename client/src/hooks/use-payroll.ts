@@ -113,3 +113,22 @@ export function useLockPayrollRun() {
     },
   });
 }
+
+export function useProcessPayrollRun() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.payroll.processRun.path, { id });
+      const res = await fetch(url, { method: api.payroll.processRun.method, credentials: "include" });
+      if (!res.ok) throw new Error("Failed to process payroll");
+      return api.payroll.processRun.responses[200].parse(await res.json());
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: [api.payroll.listRuns.path] });
+      queryClient.invalidateQueries({ queryKey: [api.payroll.getRun.path, id] });
+      toast({ title: "Payroll processed successfully", description: "All calculations are saved and the run is marked as completed." });
+    },
+  });
+}

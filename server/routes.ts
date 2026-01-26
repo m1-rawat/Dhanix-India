@@ -207,45 +207,61 @@ export async function registerRoutes(
     res.json(run);
   });
 
+  app.post(api.payroll.processRun.path, requireAuth, async (req, res) => {
+    const runId = Number(req.params.id);
+    const items = await storage.getPayrollItems(runId);
+    
+    // Calculate all items with proper PF/ESI rules
+    for (const item of items) {
+      await calculatePayrollItem(item.id);
+    }
+    
+    // Mark run as COMPLETED
+    const run = await storage.updatePayrollRun(runId, { status: "COMPLETED" });
+    res.json(run);
+  });
+
   return httpServer;
 }
 
-// Helper for Calculation Logic
+// Helper for Calculation Logic with Indian PF/ESI rules
 async function calculatePayrollItem(itemId: number) {
   const item = await storage.getPayrollItem(itemId);
   if (!item) return;
   const employee = await storage.getEmployee(item.employeeId);
   if (!employee) return;
 
-  const daysWorked = parseFloat(item.daysWorked as string) || 0;
+  const paidDays = parseFloat(item.daysWorked as string) || 0;
   const totalDays = parseFloat(item.totalDays as string) || 30;
-  const lopDays = parseFloat(item.lopDays as string) || 0;
   
-  // Use snapshotted salary components from payroll item (or fall back to employee)
-  const basic = parseFloat(item.basicSalary as string) || parseFloat(employee.fixedBasicSalary as string) || 0;
-  const hra = parseFloat(item.hra as string) || parseFloat(employee.fixedHra as string) || 0;
-  const specialAllowance = parseFloat(item.specialAllowance as string) || parseFloat(employee.fixedSpecialAllowance as string) || 0;
+  // Use snapshotted salary components from payroll item
+  const fixedBasic = parseFloat(item.basicSalary as string) || 0;
+  const fixedHra = parseFloat(item.hra as string) || 0;
+  const fixedSpecialAllowance = parseFloat(item.specialAllowance as string) || 0;
   
-  // Pro-rating factor
-  const payoutRatio = totalDays > 0 ? daysWorked / totalDays : 0;
+  // Pro-rating factor based on paid days
+  const payoutRatio = totalDays > 0 ? paidDays / totalDays : 0;
   
-  const earnedBasic = basic * payoutRatio;
-  const earnedHra = hra * payoutRatio;
-  const earnedSpecialAllowance = specialAllowance * payoutRatio;
+  // Earned components
+  const earnedBasic = fixedBasic * payoutRatio;
+  const earnedHra = fixedHra * payoutRatio;
+  const earnedSpecialAllowance = fixedSpecialAllowance * payoutRatio;
   const gross = earnedBasic + earnedHra + earnedSpecialAllowance;
   
-  // PF (12% of Basic, capped at 15k usually, but ignoring caps for MVP)
+  // PF Calculation (12% of Basic, but wages capped at 15000 as per Indian rules)
   let pfEmployee = 0;
   let pfEmployer = 0;
   if (employee.isPfApplicable) {
-    pfEmployee = earnedBasic * 0.12;
-    pfEmployer = earnedBasic * 0.12;
+    // Cap the basic for PF calculation at 15000
+    const pfWages = Math.min(earnedBasic, 15000 * payoutRatio);
+    pfEmployee = pfWages * 0.12;
+    pfEmployer = pfWages * 0.12;
   }
   
-  // ESI (0.75% Employee, 3.25% Employer on Gross)
+  // ESI Calculation (0.75% Employee on Gross, only if gross < 21000)
   let esiEmployee = 0;
   let esiEmployer = 0;
-  if (employee.isEsiApplicable) {
+  if (employee.isEsiApplicable && gross < 21000) {
     esiEmployee = gross * 0.0075;
     esiEmployer = gross * 0.0325;
   }

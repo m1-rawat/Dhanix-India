@@ -200,6 +200,13 @@ export const api = {
         200: z.custom<typeof payrollRuns.$inferSelect>(),
       },
     },
+    processRun: {
+      method: 'POST' as const,
+      path: '/api/payroll-runs/:id/process',
+      responses: {
+        200: z.custom<typeof payrollRuns.$inferSelect>(),
+      },
+    },
     updateItem: {
       method: 'PATCH' as const,
       path: '/api/payroll-items/:id',
