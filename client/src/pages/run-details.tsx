@@ -209,11 +209,13 @@ export default function RunDetailsPage() {
     }, 500);
   };
 
+  const company = (run as any).company;
+  
   return (
-    <LayoutShell orgId={String(run.company?.organizationId)} companyId={String(run.companyId)}>
+    <LayoutShell orgId={String(company?.organizationId || 1)} companyId={String(run.companyId)}>
       <div className="mb-4">
         <Link href={`/companies/${run.companyId}/payroll`}>
-          <Button variant="link" className="px-0 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" className="px-0 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Runs
           </Button>
