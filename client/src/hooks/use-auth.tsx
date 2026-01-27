@@ -73,9 +73,10 @@ export function useRegister() {
       }
       return api.auth.register.responses[201].parse(await res.json());
     },
-    onSuccess: () => {
-      toast({ title: "Account created", description: "Please log in now." });
-      setLocation("/auth");
+    onSuccess: (user) => {
+      queryClient.setQueryData([api.auth.me.path], user);
+      toast({ title: "Account created!", description: `Welcome, ${user.name}!` });
+      setLocation("/");
     },
     onError: (error) => {
       toast({
