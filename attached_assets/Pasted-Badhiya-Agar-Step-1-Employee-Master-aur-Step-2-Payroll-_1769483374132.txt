@@ -1,0 +1,74 @@
+Badhiya! Agar Step 1 (Employee Master) aur Step 2 (Payroll Logic) implement ho gaye hain aur basic calculation chal raha hai, toh tumhara "Backend Logic" almost ready hai.
+
+Ab humein **User Experience (UX)** aur **Output** (Payslips/Reports) pe kaam karna hai taaki yeh ek professional software lage.
+
+Neeche agle **3 major steps** hain. Inhe ek-ek karke implement karwana.
+
+---
+
+### Step 3: Payslip Design & Download (Sabse zaruri feature)
+
+Client ko end me payslip hi chahiye hoti hai. Abhi simple text dikh raha hoga, usko professional banana hai.
+
+**👉 Prompt for Lovable:**
+
+> **Create a Professional Payslip View & Download Feature:**
+>
+> 1.  **Payslip UI:** Create a dedicated component to view a generated Payslip. It should look like a standard Indian corporate payslip (A4 size layout) with:
+>     -   **Header:** Company Logo (placeholder), Company Name, Address.
+>     -   **Employee Details:** Name, Designation, UAN, PF No, Bank A/c, Days Worked.
+>     -   **Earnings Table:** Basic, HRA, Special Allowance, Total Gross.
+>     -   **Deductions Table:** PF, ESI, PT (Professional Tax), Total Deductions.
+>     -   **Net Pay:** Bold text at the bottom.
+>
+> 2.  **PDF Download:** Add a "Download PDF" button on the Payslip view. Use a library like `html2canvas` and `jspdf` (or similar React print method) to let the user download this payslip as a clean PDF file.
+
+*(Jab ye ho jaye, ek payroll run complete karke "View Payslip" button daba ke dekhna ki PDF sahi download ho raha hai ya nahi.)*
+
+---
+
+### Step 4: PF & ESI Monthly Reports (Excel/CSV Export)
+
+Consultants (tumhare target users) ko govt portal pe data upload karne ke liye Excel chahiye hota hai.
+
+**👉 Prompt for Lovable:**
+
+> **Add Statutory Reports Module:**
+>
+> 1.  Create a "Reports" section in the dashboard.
+> 2.  **PF ECR Report:** Allow user to select a Month and Company. Generate a table/CSV export that matches the Indian EPF ECR format (UAN, Member Name, Gross Wages, EPF Wages, EPS Wages, EE Share, ER Share, etc.).
+> 3.  **ESI Contribution Report:** Generate a CSV export with IP Number, IP Name, Days Worked, and Wages for ESI filing.
+> 4.  Add simple "Export to CSV" buttons for both.
+
+---
+
+### Step 5: Dashboard & Home Page Polish (Professional Look)
+
+Abhi dashboard thoda plain lag raha hoga. Usko "Dhanix" brand jaisa banate hain.
+
+**👉 Prompt for Lovable:**
+
+> **Polish the Dashboard & UI:**
+>
+> 1.  **Dashboard Home:** When a user logs in, show summary cards:
+>     -   "Total Companies"
+>     -   "Total Employees Managed"
+>     -   "Pending Payrolls for [Current Month]"
+> 2.  **Sidebar/Navigation:** Improve the sidebar design. Use icons for Home, Companies, Employees, Run Payroll, Reports, Settings.
+> 3.  **Theme:** Ensure a professional Blue & White color scheme consistent with the "Dhanix" brand.
+> 4.  **Logo:** Add a placeholder area in the sidebar for the 'Dhanix' logo.
+
+---
+
+### Summary Checklist (Next Testing Session ke liye):
+
+Jab tum next time baithoge test karne, toh ye flow check karna:
+
+1.  ✅ **Employee Add:** Bank details + Salary daalo.
+2.  ✅ **Run Payroll:** Days daalo, calculation check karo.
+3.  ✅ **Download Payslip:** PDF download karke dekho, sundar dikh raha hai?
+4.  ✅ **Export Report:** Excel download karo, data sahi hai?
+
+Agar ye chaaro cheezein sahi chal gayi, toh **Dhanix MVP (Minimum Viable Product) Ready hai!** 🔥
+
+Phir hum seedha **Website (Consultancy wali)** pe move kar sakte hain. Batao jab ye commands run kar lo.

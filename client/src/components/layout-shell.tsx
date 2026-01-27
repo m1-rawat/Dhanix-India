@@ -20,7 +20,8 @@ import {
   Settings, 
   Briefcase,
   Menu,
-  X
+  X,
+  FileBarChart
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function LayoutShell({ children, orgId, companyId }: LayoutShellProps) {
     ...(companyId ? [
       { label: "Employees", href: `/companies/${companyId}/employees`, icon: Users },
       { label: "Payroll", href: `/companies/${companyId}/payroll`, icon: Briefcase },
+      { label: "Reports", href: `/companies/${companyId}/reports`, icon: FileBarChart },
     ] : []),
     { label: "Settings", href: `/orgs/${orgId}/settings`, icon: Settings },
   ] : [];
