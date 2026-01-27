@@ -44,6 +44,36 @@ export async function registerRoutes(
     res.json(org);
   });
 
+  // === DASHBOARD STATS ===
+  app.get("/api/orgs/:orgId/dashboard-stats", requireAuth, async (req, res) => {
+    const orgId = Number(req.params.orgId);
+    const companies = await storage.getCompanies(orgId);
+    
+    let totalEmployees = 0;
+    let pendingPayrolls = 0;
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    for (const company of companies) {
+      const emps = await storage.getEmployees(company.id);
+      totalEmployees += emps.filter(e => e.isActive).length;
+      
+      const runs = await storage.getPayrollRuns(company.id);
+      const currentMonthRuns = runs.filter(r => r.month === currentMonth);
+      const hasDraftOrProcessing = currentMonthRuns.some(r => r.status === "DRAFT" || r.status === "PROCESSING");
+      const hasNoRun = currentMonthRuns.length === 0;
+      if (hasDraftOrProcessing || hasNoRun) {
+        pendingPayrolls++;
+      }
+    }
+    
+    res.json({
+      totalCompanies: companies.length,
+      totalEmployees,
+      pendingPayrolls,
+      currentMonth: new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+    });
+  });
+
   // === COMPANIES ===
   app.get(api.companies.list.path, requireAuth, async (req, res) => {
     const companies = await storage.getCompanies(Number(req.params.orgId));

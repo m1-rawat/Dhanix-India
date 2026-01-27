@@ -77,13 +77,16 @@ export function LayoutShell({ children, orgId, companyId }: LayoutShellProps) {
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
-          {/* Brand */}
+          {/* Brand / Logo */}
           <div className="h-16 flex items-center px-6 border-b border-border">
-            <Link href="/" className="flex items-center gap-2 font-display font-bold text-xl text-primary hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
-                D
+            <Link href="/" className="flex items-center gap-3 font-display font-bold text-xl text-primary hover:opacity-80 transition-opacity">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/25 ring-1 ring-primary/20">
+                <span className="text-lg font-bold">D</span>
               </div>
-              Dhanix
+              <div className="flex flex-col">
+                <span className="leading-none">Dhanix</span>
+                <span className="text-[10px] font-normal text-muted-foreground leading-none mt-0.5">Payroll Solutions</span>
+              </div>
             </Link>
           </div>
 
