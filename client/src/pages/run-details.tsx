@@ -175,28 +175,10 @@ export default function RunDetailsPage() {
   const [paidDaysMap, setPaidDaysMap] = useState<Record<number, number>>({});
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
   
-  useEffect(() => {
-    if (run?.items) {
-      const initialMap: Record<number, number> = {};
-      run.items.forEach((item: PayrollItemWithEmployee) => {
-        initialMap[item.id] = parseFloat(item.daysWorked) || 30;
-      });
-      setPaidDaysMap(initialMap);
-    }
+  const items = useMemo(() => {
+    return (run?.items || []) as PayrollItemWithEmployee[];
   }, [run?.items]);
 
-  if (isLoading || !run) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const isLocked = run.status === "LOCKED" || run.status === "COMPLETED";
-  const isCompleted = run.status === "COMPLETED";
-  const items = (run.items || []) as PayrollItemWithEmployee[];
-  
   const totals = useMemo(() => {
     let totalGross = 0;
     let totalPf = 0;
@@ -214,6 +196,28 @@ export default function RunDetailsPage() {
     
     return { totalGross, totalPf, totalEsi, totalNet };
   }, [items, paidDaysMap]);
+
+  useEffect(() => {
+    if (run?.items) {
+      const initialMap: Record<number, number> = {};
+      run.items.forEach((item: PayrollItemWithEmployee) => {
+        initialMap[item.id] = parseFloat(item.daysWorked) || 30;
+      });
+      setPaidDaysMap(initialMap);
+    }
+  }, [run?.items]);
+
+  const isLocked = run?.status === "LOCKED" || run?.status === "COMPLETED";
+  const isCompleted = run?.status === "COMPLETED";
+  const company = (run as any)?.company;
+
+  if (isLoading || !run) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handlePaidDaysChange = (itemId: number, days: number) => {
     setPaidDaysMap(prev => ({ ...prev, [itemId]: days }));
@@ -272,8 +276,6 @@ export default function RunDetailsPage() {
       processRun(runId);
     }, 500);
   };
-
-  const company = (run as any).company;
   
   return (
     <LayoutShell orgId={String(company?.organizationId || 1)} companyId={String(run.companyId)}>
