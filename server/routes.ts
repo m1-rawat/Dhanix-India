@@ -120,6 +120,13 @@ export async function registerRoutes(
     if (body.dateOfJoining && typeof body.dateOfJoining === 'string') {
       body.dateOfJoining = new Date(body.dateOfJoining);
     }
+    // Convert empty strings to 0 for numeric fields
+    const numericFields = ['fixedBasicSalary', 'fixedHra', 'fixedSpecialAllowance'];
+    for (const field of numericFields) {
+      if (body[field] === '' || body[field] === null || body[field] === undefined) {
+        body[field] = 0;
+      }
+    }
     const input = api.employees.create.input.parse(body);
     const employee = await storage.createEmployee({ ...input, companyId: Number(req.params.companyId) });
     res.status(201).json(employee);
@@ -135,6 +142,13 @@ export async function registerRoutes(
     const body = { ...req.body };
     if (body.dateOfJoining && typeof body.dateOfJoining === 'string') {
       body.dateOfJoining = new Date(body.dateOfJoining);
+    }
+    // Convert empty strings to 0 for numeric fields
+    const numericFields = ['fixedBasicSalary', 'fixedHra', 'fixedSpecialAllowance'];
+    for (const field of numericFields) {
+      if (body[field] === '') {
+        body[field] = 0;
+      }
     }
     const input = api.employees.update.input.parse(body);
     const employee = await storage.updateEmployee(Number(req.params.id), input);
