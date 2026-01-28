@@ -116,7 +116,11 @@ export async function registerRoutes(
   });
 
   app.post(api.employees.create.path, requireAuth, async (req, res) => {
-    const input = api.employees.create.input.parse(req.body);
+    const body = { ...req.body };
+    if (body.dateOfJoining && typeof body.dateOfJoining === 'string') {
+      body.dateOfJoining = new Date(body.dateOfJoining);
+    }
+    const input = api.employees.create.input.parse(body);
     const employee = await storage.createEmployee({ ...input, companyId: Number(req.params.companyId) });
     res.status(201).json(employee);
   });
@@ -128,7 +132,11 @@ export async function registerRoutes(
   });
 
   app.patch(api.employees.update.path, requireAuth, async (req, res) => {
-    const input = api.employees.update.input.parse(req.body);
+    const body = { ...req.body };
+    if (body.dateOfJoining && typeof body.dateOfJoining === 'string') {
+      body.dateOfJoining = new Date(body.dateOfJoining);
+    }
+    const input = api.employees.update.input.parse(body);
     const employee = await storage.updateEmployee(Number(req.params.id), input);
     res.json(employee);
   });
