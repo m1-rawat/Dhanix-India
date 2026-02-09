@@ -1,0 +1,44 @@
+Implement Bulk Employee Import (CSV) for Dhanix.
+
+UI requirements
+
+In the sidebar “Employees” section (company context), add a button: Import Employees.
+Create a new page/route: /companies/:companyId/employees/import
+Page sections:
+Download Template button that downloads a CSV with this exact header:
+employeeCode,firstName,lastName,email,phone,dateOfJoining,designation,bankAccountNumber,ifscCode,uan,esicIpNumber,isPfApplicable,isEsiApplicable,fixedBasic,fixedHra,fixedSpecialAllowance
+File picker for .csv
+On file select: parse CSV client-side using papaparse
+Show a preview table (first 20 rows) and show validation errors inline (highlight rows/fields).
+“Import Now” button (disabled until no fatal validation errors).
+After import: show summary Created / Updated / Failed and a button Download Failed Rows CSV (include an extra error column).
+Validation rules
+
+Required: employeeCode, firstName, dateOfJoining, fixedBasic
+dateOfJoining must be parseable (prefer YYYY-MM-DD)
+Salary fields numeric (blank => 0)
+isPfApplicable and isEsiApplicable accept true/false/1/0/yes/no (case-insensitive); blank => false
+Email format basic validation (if present)
+Backend API
+
+Add endpoint: POST /api/companies/:companyId/employees/import
+Body: { rows: EmployeeImportRow[] } (array of parsed rows)
+Enforce multi-tenancy: the authenticated user must have access to the company’s organization.
+Upsert behavior:
+Unique key: (companyId, employeeCode)
+If employee exists -> update fields
+Else -> create
+Response:
+JSON
+
+{ "created": number, "updated": number, "failedCount": number, "failedRows": Array<{ row: any, error: string }> }
+Database
+
+Ensure a unique constraint exists on (companyId, employeeCode) for employees (add Drizzle migration if needed).
+Notes
+
+Keep it MVP-ready: fixed template header only (no column mapping in v1).
+Use clean blue/white UI consistent with Dhanix.
+Add unit-like helper functions for parsing/validation to keep code clean.
+After implementing, show me where the new files/routes/endpoints were added.
+
