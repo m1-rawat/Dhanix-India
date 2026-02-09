@@ -71,7 +71,9 @@ export const employees = pgTable("employees", {
   fixedSpecialAllowance: numeric("fixed_special_allowance").notNull().default("0"),
   
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => ({
+  companyEmployeeUnique: unique().on(t.companyId, t.employeeCode),
+}));
 
 // === PAYROLL RUNS ===
 export const payrollRuns = pgTable("payroll_runs", {
