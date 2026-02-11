@@ -160,6 +160,19 @@ export const api = {
         200: z.custom<typeof employees.$inferSelect>(),
       },
     },
+    import: {
+      method: 'POST' as const,
+      path: '/api/companies/:companyId/employees/import',
+      input: z.object({ rows: z.array(z.any()) }),
+      responses: {
+        200: z.object({
+          created: z.number(),
+          updated: z.number(),
+          failedCount: z.number(),
+          failedRows: z.array(z.object({ row: z.any(), error: z.string() })),
+        }),
+      },
+    },
   },
 
   // === PAYROLL RUNS ===

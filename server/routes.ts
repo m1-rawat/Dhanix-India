@@ -273,6 +273,32 @@ export async function registerRoutes(
     res.json(run);
   });
 
+  // === EMPLOYEE IMPORT ===
+  app.post(api.employees.import.path, requireAuth, async (req, res) => {
+    const companyId = Number(req.params.companyId);
+    
+    // Multi-tenant check: Get company and verify it belongs to one of user's orgs
+    const company = await storage.getCompany(companyId);
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    const memberships = await storage.getOrganizationsForUser((req.user as any).id);
+    const isMember = memberships.some((m: any) => m.id === company.organizationId);
+    
+    if (!isMember) {
+      return res.status(403).json({ message: "Forbidden: You don't have access to this company" });
+    }
+
+    // Dummy response for now
+    res.json({
+      created: 0,
+      updated: 0,
+      failedCount: 0,
+      failedRows: []
+    });
+  });
+
   return httpServer;
 }
 
