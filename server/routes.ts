@@ -277,7 +277,7 @@ export async function registerRoutes(
   app.post(api.employees.import.path, requireAuth, async (req, res) => {
     const companyId = Number(req.params.companyId);
     
-    // Multi-tenant check: Get company and verify it belongs to one of user's orgs
+    // Multi-tenant check
     const company = await storage.getCompany(companyId);
     if (!company) {
       return res.status(404).json({ message: "Company not found" });
@@ -290,12 +290,58 @@ export async function registerRoutes(
       return res.status(403).json({ message: "Forbidden: You don't have access to this company" });
     }
 
-    // Dummy response for now
+    const { rows } = req.body;
+    if (!Array.isArray(rows)) {
+      return res.status(400).json({ message: "Invalid payload: 'rows' must be an array" });
+    }
+
+    let created = 0;
+    let updated = 0;
+    const failedRows: Array<{ row: any; error: string }> = [];
+
+    for (const row of rows) {
+      try {
+        // Validation
+        if (!row.employeeCode || !row.firstName || !row.dateOfJoining || !row.fixedBasicSalary) {
+          failedRows.push({ row, error: "Missing required fields: employeeCode, firstName, dateOfJoining, fixedBasicSalary" });
+          continue;
+        }
+
+        const dateOfJoining = new Date(row.dateOfJoining);
+        if (isNaN(dateOfJoining.getTime())) {
+          failedRows.push({ row, error: "Invalid date format for dateOfJoining" });
+          continue;
+        }
+
+        const employeeData = {
+          ...row,
+          companyId,
+          dateOfJoining,
+          fixedBasicSalary: String(row.fixedBasicSalary || "0"),
+          fixedHra: String(row.fixedHra || "0"),
+          fixedSpecialAllowance: String(row.fixedSpecialAllowance || "0"),
+          isPfApplicable: row.isPfApplicable === true || row.isPfApplicable === 'true' || row.isPfApplicable === 'yes' || row.isPfApplicable === '1',
+          isEsiApplicable: row.isEsiApplicable === true || row.isEsiApplicable === 'true' || row.isEsiApplicable === 'yes' || row.isEsiApplicable === '1',
+        };
+
+        const existing = await storage.getEmployeeByCode(companyId, row.employeeCode);
+        if (existing) {
+          await storage.updateEmployee(existing.id, employeeData);
+          updated++;
+        } else {
+          await storage.createEmployee(employeeData);
+          created++;
+        }
+      } catch (err: any) {
+        failedRows.push({ row, error: err.message || "Unknown error during upsert" });
+      }
+    }
+
     res.json({
-      created: 0,
-      updated: 0,
-      failedCount: 0,
-      failedRows: []
+      created,
+      updated,
+      failedCount: failedRows.length,
+      failedRows
     });
   });
 
