@@ -62,7 +62,7 @@ export default function ImportEmployees() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: (results: Papa.ParseResult<any>) => {
         setPreviewData(results.data.slice(0, 20));
         setIsParsing(false);
         toast({
@@ -70,7 +70,7 @@ export default function ImportEmployees() {
           description: `Showing preview of ${Math.min(results.data.length, 20)} rows.`,
         });
       },
-      error: (error) => {
+      error: (error: Error) => {
         setIsParsing(false);
         toast({
           title: "Error parsing file",
