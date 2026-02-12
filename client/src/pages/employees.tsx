@@ -13,8 +13,9 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useMemo } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Upload } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -65,6 +66,7 @@ export default function EmployeesPage() {
   const { data: company } = useCompany(companyId);
   const { data: employees, isLoading } = useEmployees(companyId);
   const { mutate: createEmployee, isPending: isCreating } = useCreateEmployee();
+  const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -133,6 +135,14 @@ export default function EmployeesPage() {
                  data-testid="input-search-employees"
                />
              </div>
+             <Button 
+               variant="outline" 
+               onClick={() => setLocation(`/companies/${companyId}/employees/import`)}
+               data-testid="button-import-employees"
+             >
+               <Upload className="w-4 h-4 mr-2" />
+               Import Employees
+             </Button>
              <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="shadow-lg shadow-primary/20" data-testid="button-add-employee">

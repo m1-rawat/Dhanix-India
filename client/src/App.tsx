@@ -15,6 +15,7 @@ import EmployeesPage from "@/pages/employees";
 import PayrollPage from "@/pages/payroll";
 import RunDetailsPage from "@/pages/run-details";
 import ReportsPage from "@/pages/reports";
+import ImportEmployeesPage from "@/pages/import-employees";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { data: user, isLoading } = useUser();
@@ -68,6 +69,10 @@ function Router() {
 
       <Route path="/companies/:companyId/reports">
         <ProtectedRoute component={ReportsPage} />
+      </Route>
+
+      <Route path="/companies/:companyId/employees/import">
+        <ProtectedRoute component={ImportEmployeesPage} />
       </Route>
 
       <Route component={NotFound} />
