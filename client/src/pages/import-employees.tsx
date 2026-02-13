@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { api } from "@shared/routes";
 import type { Company } from "@shared/schema";
 
 const TEMPLATE_HEADER = [
@@ -63,11 +64,16 @@ export default function ImportEmployees() {
     },
     onSuccess: (data) => {
       setImportResult(data);
-      queryClient.invalidateQueries({ queryKey: [`/api/companies/${companyId}/employees`] });
+      queryClient.invalidateQueries({ queryKey: [api.employees.list.path, companyId] });
       toast({
-        title: "Import complete",
+        title: "Employees imported successfully",
         description: `Created ${data.created}, Updated ${data.updated}, Failed ${data.failedCount}`,
       });
+      if (data.failedCount === 0) {
+        setTimeout(() => {
+          setLocation(`/companies/${companyId}/employees`);
+        }, 1500);
+      }
     },
     onError: (error: any) => {
       toast({
