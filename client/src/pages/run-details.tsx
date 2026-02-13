@@ -5,13 +5,15 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle, Lock, ArrowLeft, Loader2, Play, Users, IndianRupee, Calculator, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { CheckCircle, Lock, ArrowLeft, Loader2, Play, Users, IndianRupee, Calculator, FileText, Upload, Download, Info, AlertCircle } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Payslip, PayslipData } from "@/components/payslip";
+import Papa from "papaparse";
+import { useToast } from "@/hooks/use-toast";
 
 interface PayrollItemWithEmployee {
   id: number;
@@ -47,7 +49,7 @@ interface PayrollItemWithEmployee {
   };
 }
 
-function calculatePayroll(item: PayrollItemWithEmployee, paidDays: number) {
+function calculatePayroll(item: PayrollItemWithEmployee, paidDays: number, otherDeductions: number = 0) {
   const totalDays = parseFloat(item.totalDays) || 30;
   const fixedBasic = parseFloat(item.basicSalary) || 0;
   const fixedHra = parseFloat(item.hra) || 0;
@@ -71,7 +73,7 @@ function calculatePayroll(item: PayrollItemWithEmployee, paidDays: number) {
     esiAmount = gross * 0.0075;
   }
   
-  const netPay = gross - pfAmount - esiAmount;
+  const netPay = gross - pfAmount - esiAmount - otherDeductions;
   
   return {
     earnedBasic,
@@ -96,19 +98,23 @@ function formatCurrency(amount: number) {
 function PayrollRow({ 
   item, 
   paidDays, 
+  otherDeductions,
   onPaidDaysChange, 
+  onOtherDeductionsChange,
   isLocked,
   isCompleted,
   onViewPayslip
 }: { 
   item: PayrollItemWithEmployee; 
   paidDays: number;
+  otherDeductions: number;
   onPaidDaysChange: (days: number) => void;
+  onOtherDeductionsChange: (amount: number) => void;
   isLocked: boolean;
   isCompleted: boolean;
   onViewPayslip: () => void;
 }) {
-  const calc = useMemo(() => calculatePayroll(item, paidDays), [item, paidDays]);
+  const calc = useMemo(() => calculatePayroll(item, paidDays, otherDeductions), [item, paidDays, otherDeductions]);
   
   return (
     <TableRow className="hover:bg-muted/5" data-testid={`row-payroll-item-${item.id}`}>
@@ -133,6 +139,17 @@ function PayrollRow({
           disabled={isLocked}
           className="h-8 w-20 text-right"
           data-testid={`input-paid-days-${item.id}`}
+        />
+      </TableCell>
+      <TableCell className="text-right">
+        <Input
+          type="number"
+          min="0"
+          value={otherDeductions}
+          onChange={(e) => onOtherDeductionsChange(Math.max(0, parseFloat(e.target.value) || 0))}
+          disabled={isLocked}
+          className="h-8 w-24 text-right"
+          data-testid={`input-other-deductions-${item.id}`}
         />
       </TableCell>
       <TableCell className="text-right font-mono text-sm">{formatCurrency(calc.earnedBasic)}</TableCell>
@@ -166,6 +183,7 @@ function PayrollRow({
 export default function RunDetailsPage() {
   const [match, params] = useRoute("/payroll-runs/:id");
   const runId = params?.id ? parseInt(params.id) : 0;
+  const { toast } = useToast();
   
   const { data: run, isLoading } = usePayrollRun(runId);
   const { mutate: processRun, isPending: isProcessing } = useProcessPayrollRun();
@@ -173,7 +191,9 @@ export default function RunDetailsPage() {
   const { mutate: updateItem } = useUpdatePayrollItem();
   
   const [paidDaysMap, setPaidDaysMap] = useState<Record<number, number>>({});
+  const [otherDeductionsMap, setOtherDeductionsMap] = useState<Record<number, number>>({});
   const [selectedPayslip, setSelectedPayslip] = useState<PayslipData | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
   const items = useMemo(() => {
     return (run?.items || []) as PayrollItemWithEmployee[];
@@ -187,7 +207,8 @@ export default function RunDetailsPage() {
     
     items.forEach((item) => {
       const paidDays = paidDaysMap[item.id] ?? 30;
-      const calc = calculatePayroll(item, paidDays);
+      const otherDeductions = otherDeductionsMap[item.id] ?? 0;
+      const calc = calculatePayroll(item, paidDays, otherDeductions);
       totalGross += calc.gross;
       totalPf += calc.pfAmount;
       totalEsi += calc.esiAmount;
@@ -195,15 +216,18 @@ export default function RunDetailsPage() {
     });
     
     return { totalGross, totalPf, totalEsi, totalNet };
-  }, [items, paidDaysMap]);
+  }, [items, paidDaysMap, otherDeductionsMap]);
 
   useEffect(() => {
     if (run?.items) {
-      const initialMap: Record<number, number> = {};
+      const initialPaidDaysMap: Record<number, number> = {};
+      const initialOtherDeductionsMap: Record<number, number> = {};
       run.items.forEach((item: PayrollItemWithEmployee) => {
-        initialMap[item.id] = parseFloat(item.daysWorked) || 30;
+        initialPaidDaysMap[item.id] = parseFloat(item.daysWorked) || 30;
+        initialOtherDeductionsMap[item.id] = parseFloat(item.otherDeductions) || 0;
       });
-      setPaidDaysMap(initialMap);
+      setPaidDaysMap(initialPaidDaysMap);
+      setOtherDeductionsMap(initialOtherDeductionsMap);
     }
   }, [run?.items]);
 
@@ -223,9 +247,14 @@ export default function RunDetailsPage() {
     setPaidDaysMap(prev => ({ ...prev, [itemId]: days }));
   };
 
+  const handleOtherDeductionsChange = (itemId: number, amount: number) => {
+    setOtherDeductionsMap(prev => ({ ...prev, [itemId]: amount }));
+  };
+
   const handleViewPayslip = (item: PayrollItemWithEmployee) => {
     const paidDays = paidDaysMap[item.id] ?? (parseFloat(item.daysWorked) || 30);
-    const calc = calculatePayroll(item, paidDays);
+    const otherDeductions = otherDeductionsMap[item.id] ?? (parseFloat(item.otherDeductions) || 0);
+    const calc = calculatePayroll(item, paidDays, otherDeductions);
     
     const payslipData: PayslipData = {
       companyName: company?.name || 'Company Name',
@@ -255,8 +284,8 @@ export default function RunDetailsPage() {
         pfEmployee: calc.pfAmount,
         esiEmployee: calc.esiAmount,
         professionalTax: 0,
-        otherDeductions: parseFloat(item.otherDeductions) || 0,
-        totalDeductions: calc.pfAmount + calc.esiAmount + (parseFloat(item.otherDeductions) || 0),
+        otherDeductions: otherDeductions,
+        totalDeductions: calc.pfAmount + calc.esiAmount + otherDeductions,
       },
       netPay: calc.netPay,
     };
@@ -267,14 +296,82 @@ export default function RunDetailsPage() {
   const handleProcessPayroll = () => {
     items.forEach((item) => {
       const days = paidDaysMap[item.id] ?? 30;
-      if (days !== parseFloat(item.daysWorked)) {
-        updateItem({ id: item.id, daysWorked: days });
+      const otherDeductions = otherDeductionsMap[item.id] ?? 0;
+      if (days !== parseFloat(item.daysWorked) || otherDeductions !== parseFloat(item.otherDeductions)) {
+        updateItem({ id: item.id, daysWorked: days, otherDeductions: String(otherDeductions) });
       }
     });
     
     setTimeout(() => {
       processRun(runId);
     }, 500);
+  };
+
+  const downloadAttendanceTemplate = () => {
+    const headers = "employeeCode,paidDays,lopDays,otherDeductions";
+    const blob = new Blob([headers], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "attendance_template.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleAttendanceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        let matched = 0;
+        let skipped = 0;
+        let errors = 0;
+        const errorRows: any[] = [];
+
+        const newPaidDaysMap = { ...paidDaysMap };
+        const newOtherDeductionsMap = { ...otherDeductionsMap };
+
+        results.data.forEach((row: any) => {
+          const code = row.employeeCode?.trim();
+          if (!code) {
+            errors++;
+            errorRows.push({ row, error: "Missing employeeCode" });
+            return;
+          }
+
+          const payrollItem = items.find(item => item.employee?.employeeCode === code);
+          if (!payrollItem) {
+            skipped++;
+            return;
+          }
+
+          const paidDays = parseFloat(row.paidDays) || 0;
+          const otherDeductions = parseFloat(row.otherDeductions) || 0;
+
+          if (isNaN(paidDays) || isNaN(otherDeductions)) {
+            errors++;
+            errorRows.push({ row, error: "Invalid numeric values" });
+            return;
+          }
+
+          newPaidDaysMap[payrollItem.id] = Math.max(0, Math.min(31, paidDays));
+          newOtherDeductionsMap[payrollItem.id] = Math.max(0, otherDeductions);
+          matched++;
+        });
+
+        setPaidDaysMap(newPaidDaysMap);
+        setOtherDeductionsMap(newOtherDeductionsMap);
+        
+        toast({
+          title: "Attendance imported successfully",
+          description: `Matched: ${matched}, Skipped: ${skipped}, Errors: ${errors}`,
+        });
+        setIsImportModalOpen(false);
+      }
+    });
   };
   
   return (
@@ -300,15 +397,25 @@ export default function RunDetailsPage() {
         actions={
           <div className="flex gap-2 items-center">
             {run.status === "DRAFT" && (
-              <Button 
-                onClick={handleProcessPayroll} 
-                disabled={isProcessing}
-                className="shadow-lg shadow-primary/20"
-                data-testid="button-process-payroll"
-              >
-                {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                Process Payroll
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsImportModalOpen(true)}
+                  data-testid="button-import-attendance"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import Attendance
+                </Button>
+                <Button 
+                  onClick={handleProcessPayroll} 
+                  disabled={isProcessing}
+                  className="shadow-lg shadow-primary/20"
+                  data-testid="button-process-payroll"
+                >
+                  {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                  Process Payroll
+                </Button>
+              </>
             )}
             {isCompleted && !isLocked && (
               <Button 
@@ -394,6 +501,7 @@ export default function RunDetailsPage() {
                 <TableHead className="w-[180px]">Employee</TableHead>
                 <TableHead className="text-center w-[80px]">Statutory</TableHead>
                 <TableHead className="text-right w-[100px]">Paid Days</TableHead>
+                <TableHead className="text-right w-[120px]">Other Ded.</TableHead>
                 <TableHead className="text-right">Earned Basic</TableHead>
                 <TableHead className="text-right">Earned HRA</TableHead>
                 <TableHead className="text-right">Gross</TableHead>
@@ -409,7 +517,9 @@ export default function RunDetailsPage() {
                   key={item.id}
                   item={item}
                   paidDays={paidDaysMap[item.id] ?? 30}
+                  otherDeductions={otherDeductionsMap[item.id] ?? 0}
                   onPaidDaysChange={(days) => handlePaidDaysChange(item.id, days)}
+                  onOtherDeductionsChange={(amount) => handleOtherDeductionsChange(item.id, amount)}
                   isLocked={isLocked}
                   isCompleted={isCompleted}
                   onViewPayslip={() => handleViewPayslip(item)}
@@ -417,7 +527,7 @@ export default function RunDetailsPage() {
               ))}
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     No employees found for this run.
                   </TableCell>
                 </TableRow>
@@ -442,6 +552,59 @@ export default function RunDetailsPage() {
         </div>
       )}
 
+      {/* Import Attendance Modal */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Import Attendance</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to bulk update paid days and deductions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="bg-muted/50 p-4 rounded-lg border border-border">
+              <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-primary" />
+                CSV Format Instructions
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Your CSV must include the following headers in exact order:
+                <code className="block mt-2 bg-background p-2 rounded border font-mono text-primary">
+                  employeeCode,paidDays,lopDays,otherDeductions
+                </code>
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={downloadAttendanceTemplate}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Attendance Template
+              </Button>
+              
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative flex items-center bg-background border rounded-lg p-3">
+                  <Input 
+                    type="file" 
+                    accept=".csv" 
+                    onChange={handleAttendanceImport}
+                    className="border-0 focus-visible:ring-0 cursor-pointer h-auto"
+                  />
+                  <Upload className="w-5 h-5 text-muted-foreground mr-2" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsImportModalOpen(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!selectedPayslip} onOpenChange={(open) => !open && setSelectedPayslip(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-auto p-4">
           <DialogTitle className="sr-only">Employee Payslip</DialogTitle>
@@ -449,7 +612,7 @@ export default function RunDetailsPage() {
             <Payslip 
               data={selectedPayslip} 
               onClose={() => setSelectedPayslip(null)} 
-            />
+              />
           )}
         </DialogContent>
       </Dialog>

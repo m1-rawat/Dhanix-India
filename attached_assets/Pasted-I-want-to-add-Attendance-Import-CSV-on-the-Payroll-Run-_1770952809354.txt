@@ -1,0 +1,54 @@
+I want to add Attendance Import (CSV) on the Payroll Run Details / Manage page in Dhanix.
+
+Current behavior:
+
+On the Payroll Run “Manage” page, I see a table of employees for that run with columns like employeeCode, name, paidDays, lopDays, otherDeductions, etc.
+Right now I have to manually type paidDays (and optionally lopDays / otherDeductions) for each employee before processing the payroll run.
+I want a new feature that lets me import attendance from a CSV and auto‑fill these fields in the table.
+
+Requirements
+1. UI changes on Run Details page
+
+On the payroll run details / manage screen, above the employees table, add a button:
+Label: Import Attendance
+Clicking this button should open a modal/dialog (or a panel) with:
+Text description of the CSV format.
+A button: “Download Attendance Template” that downloads a CSV with this exact header:
+text
+
+employeeCode,paidDays,lopDays,otherDeductions
+File input to upload a .csv file.
+2. CSV parsing & matching (client‑side only)
+
+Parse the CSV on the client using papaparse (we already use it for employee import; reuse or install if needed).
+For each row in CSV:
+employeeCode (string, required)
+paidDays (number, default 0 if blank)
+lopDays (number, default 0 if blank)
+otherDeductions (number, default 0 if blank)
+Match rows to existing employees in the current payroll run table by employeeCode.
+For matched employees:
+Update the row’s paidDays, lopDays, and otherDeductions fields in the UI state.
+For CSV rows that don’t match any employeeCode in this run, keep a small summary (e.g. “X rows skipped – employee not found”).
+3. Validation
+
+If employeeCode is missing on a row → treat as invalid; don’t apply.
+Numeric fields: if non‑numeric, treat as error (do not apply) and include that row in an “errors” summary list.
+Show a simple summary in the modal after processing:
+Matched & updated: N
+Skipped (no employee with that code): M
+Error rows (invalid data): K
+Optionally, list the error rows in a small table within the modal.
+4. Integration with existing Run Details logic
+
+Do not change the backend payroll API right now.
+The imported attendance should simply update whatever local state is used to hold the current rows in the Run Details page, so that when I click “Process Payroll” / “Save”, the backend receives these updated paidDays, lopDays, and otherDeductions values as if I had typed them manually.
+Make sure this works only when the run is in DRAFT/unlocked state; if run is LOCKED / completed, disable or hide the “Import Attendance” button.
+5. UX
+
+Keep the UI consistent with current Dhanix styling (buttons, cards, modal).
+After successful import & update of the table, close the modal automatically and maybe show a toast: “Attendance imported successfully”.
+At the end, please tell me:
+
+Which files/components you modified (especially the Run Details / Payroll Run manage page).
+How to test this feature end‑to‑end.
